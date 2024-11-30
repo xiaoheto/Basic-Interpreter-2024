@@ -140,13 +140,18 @@ public:
 
     int getNextLineNumber(int lineNumber);
 
-    //more func to add
-    //todo
+    int getCurrentLineNumber();
+
+    int setCurrentLineNumber(int lineNumber);//设置当前行
+
+    void printAllLines()const;
+
+    void goToNextLine();
 
 private:
-
-    // Fill this in with whatever types and instance variables you need
-    //todo
+    std::map<int, Statement*>parsedStatements;//按顺序存储行号到语句的映射
+    std::map<int,std::string>sourceLines;//按顺序储存行号到源代码的映射
+    int currentLineNumber;//当前正在处理的行
 };
 
 #endif
