@@ -13,7 +13,9 @@
 #define _statement_h
 
 #include <string>
+#include <unordered_set>
 #include <sstream>
+#include <limits>
 #include "evalstate.hpp"
 #include "exp.hpp"
 #include "Utils/tokenScanner.hpp"
@@ -70,7 +72,8 @@ public:
  */
 
     virtual void execute(EvalState &state, Program &program) = 0;
-
+protected:
+    std::string str_line;//当前行正在解析的内容
 };
 
 
@@ -84,5 +87,59 @@ public:
  * an Expression object), the class implementation must also
  * specify its own destructor method to free that memory.
  */
+class REM: public Statement {
+public:
+    REM();//默认构造函数
+    explicit REM (const std::string &input);//字符串构造函数
+    ~REM() override;//析构函数
+    void execute (EvalState &state, Program &program) override;
+};
 
+class LET: public Statement {
+public:
+    LET();
+    explicit  LET (const std::string &input);
+    ~LET() override;
+    void execute (EvalState &state, Program &program) override;
+};
+
+class PRINT:public Statement {
+public:
+    PRINT();
+    explicit  PRINT (const std::string &input);
+    ~PRINT() override;
+    void execute (EvalState &state, Program &program) override;
+};
+
+class GOTO:public Statement {
+public:
+    GOTO();
+    explicit  GOTO (const std::string &input);
+    ~GOTO() override;
+    void execute (EvalState &state, Program &program) override;
+};
+
+class INPUT:public Statement {
+public:
+    INPUT();
+    explicit  INPUT (const std::string &input);
+    ~INPUT() override;
+    void execute (EvalState &state, Program &program) override;
+};
+
+class END:public Statement {
+public:
+    END();
+    explicit  END (const std::string &input);
+    ~END() override;
+    void execute (EvalState &state, Program &program) override;
+};
+
+class IF:public Statement {
+public:
+    IF();
+    explicit  IF (const std::string &input);
+    ~IF() override;
+    void execute (EvalState &state, Program &program) override;
+};
 #endif
