@@ -109,34 +109,17 @@ void processLine(std::string line, Program &program, EvalState &state) {
     }
 }
 Statement* parseStatement(const std::string &line) {
-    TokenScanner scanner;
+    TokenScanner scanner(line);
     scanner.ignoreWhitespace();
     scanner.scanNumbers();
-    scanner.setInput(line);
-
     std::string command = scanner.nextToken();
-
-    if (command == "LET") {
-        return new LET(line);
-    }
-    else if (command == "PRINT") {
-        return new PRINT(line);
-    }
-    else if (command == "INPUT") {
-        return new INPUT(line);
-    }
-    else if (command == "REM") {
-        return new REM(line);
-    }
-    else if (command == "END") {
-        return new END(line);
-    }
-    else if (command == "GOTO") {
-        return new GOTO(line);
-    }
-    else if (command == "IF") {
-        return new IF(line);
-    }
-    error("SYNTAX ERROR");
+    if (command == "REM") return new REM(line);
+    if (command == "LET") return new LET(line);
+    if (command == "PRINT") return new PRINT(line);
+    if (command == "INPUT") return new INPUT(line);
+    if (command == "END") return new END(line);
+    if (command == "GOTO") return new GOTO(line);
+    if (command == "IF") return new IF(line);
+    throw ErrorException("SYNTAX ERROR: Unknown command");
 }
 
