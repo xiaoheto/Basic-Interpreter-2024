@@ -16,6 +16,7 @@ int stringToInt(std::string str);
 bool isKeyword(const std::string &var);//检查是否是关键字
 bool isValidIdentifier(const std::string &var);//检查变量名称是否合法
 bool isVaribleValid(const std::string &var);//验证变量名是否正确
+int assign(TokenScanner &scanner, EvalState &state);
 
 Statement::Statement() = default;
 
@@ -191,82 +192,57 @@ IF::IF(const std::string& input) {
 }
 IF::~IF() = default;
 void IF::execute(EvalState &state, Program &program) {
-    TokenScanner scanner(str_line);
-    scanner.ignoreWhitespace();
-    scanner.scanNumbers();
-    scanner.setInput(str_line);
-    if (scanner.nextToken() != "IF") {
+    std::string tempLine = str_line;
+    tempLine = tempLine.substr(3);
+    int op = 0;
+    while (tempLine[op] != '=' && tempLine[op] != '<' && tempLine[op] != '>') {
+        ++op;
+    }//找到比较运算符
+    std::string lh = tempLine.substr(0, op);
+    TokenScanner lhsExpre;
+    lhsExpre.ignoreWhitespace();
+    lhsExpre.scanNumbers();
+    lhsExpre.setInput(lh);
+    int lhs = assign(lhsExpre, state);
+    int end = op + 1;
+    while (tempLine[end] == ' ') ++end;
+    while (end < tempLine.length() && tempLine[end] != 'T' && tempLine[end] != '=' && tempLine[end] != '<' && tempLine[end] != '>') {
+        ++end;
+    }
+    if (end == tempLine.length() || tempLine[end] == '='|| tempLine[end] == '<' || tempLine[end] == '>') {
         error("SYNTAX ERROR");
     }
-    Expression* lhExp = nullptr;
-    try {
-        lhExp = parseExp(scanner);
-    } catch (...) {
-        error("SYNTAX ERROR");
-    }
-    
-    if (!scanner.hasMoreTokens()) {
-        delete lhExp;
-        error("SYNTAX ERROR");
-    }
-    std::string op = scanner.nextToken();
-    if (op != "=" && op != "<" && op != ">") {
-        delete lhExp;
-        error("SYNTAX ERROR");
-    }
-    Expression* rhsExp = nullptr;
-    try {
-        rhsExp = parseExp(scanner);
-    } catch (...) {
-        delete lhExp;
-        error("SYNTAX ERROR");
-    }
-    
-    if (!scanner.hasMoreTokens() || scanner.nextToken() != "THEN") {
-        delete lhExp;
-        delete rhsExp;
-        error("SYNTAX ERROR");
-    }
-    if (!scanner.hasMoreTokens()) {
-        delete lhExp;
-        delete rhsExp;
-        error("SYNTAX ERROR");
-    }
-    std::string lineNumberToken = scanner.nextToken();
-    int targetLine;
-    try {
-        targetLine = stringToInt(lineNumberToken);
-    } catch (...) {
-        delete lhExp;
-        delete rhsExp;
-        error("SYNTAX ERROR");
-    }
-    if (program.getSourceLine(targetLine).empty()) {
-        delete lhExp;
-        delete rhsExp;
-        error("LINE NUMBER ERROR");
-    }
-    if (scanner.hasMoreTokens()) {
-        delete lhExp;
-        delete rhsExp;
-        error("SYNTAX ERROR");
-    }
-    try {
-        int lhs = lhExp->eval(state);
-        int rhs = rhsExp->eval(state);
-        if (check(op[0], lhs, rhs)) {
-            program.setCurrentLineNumber(targetLine);
-        } else {
-            program.goToNextLine();
+    --end;
+    std::string rhsString = tempLine.substr(op + 1, end - op - 1);
+    TokenScanner rhsScanner;
+    rhsScanner.ignoreWhitespace();
+    rhsScanner.scanNumbers();
+    rhsScanner.setInput(rhsString);
+    int rhs = assign(rhsScanner, state);
+    if (check(tempLine[op], lhs, rhs)) {
+        tempLine = tempLine.substr(end + 1);
+        TokenScanner scanner;
+        scanner.ignoreWhitespace();
+        scanner.scanNumbers();
+        scanner.setInput(tempLine);
+        if (scanner.nextToken() != "THEN") {
+            error("SYNTAX ERROR");
         }
-    } catch (...) {
-        delete lhExp;
-        delete rhsExp;
-        error("RUNTIME ERROR");
+        else {
+            std::string token = scanner.nextToken();
+            int lineNumber = stringToInt(token);
+            if (scanner.hasMoreTokens()) error("SYNTAX ERROR");
+            if (program.getSourceLine(lineNumber).empty()) {
+                error("LINE NUMBER ERROR");
+            }
+            else{
+                program.setCurrentLineNumber(lineNumber);
+            }
+        }
     }
-
-    delete lhExp;
-    delete rhsExp;
+    else {
+        program.goToNextLine();
+    }
 }
 
 
@@ -324,4 +300,9 @@ bool isVaribleValid(const std::string &var) {
     if (!isValidIdentifier(var)) return false; // 检查字符合法性
     if (isKeyword(var)) return false;          // 检查是否为关键字
     return true;
+}
+
+int assign(TokenScanner &scanner, EvalState &state) {
+    Expression *exp = parseExp(scanner);
+    return exp->eval(state);
 }
