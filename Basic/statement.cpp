@@ -115,7 +115,7 @@ void GOTO::execute(EvalState &state, Program &program) {
         error("SYNTAX ERROR");
     }
     if (program.getSourceLine(targetLine).empty()) {
-        error("SYNTAX ERROR");
+        error("LINE NUMBER ERROR");
     }
     if (scanner.hasMoreTokens()) {
         error("SYNTAX ERROR");
@@ -190,14 +190,19 @@ void IF::execute(EvalState &state, Program &program) {
     if (scanner.nextToken() != "IF") {
         error("SYNTAX ERROR");
     }
-
     Expression *lhExp = nullptr;
     try {
         lhExp = parseExp(scanner);
     } catch (...) {
         error("SYNTAX ERROR");
     }
-    int lhs = lhExp->eval(state);
+    int lhs;
+    try {
+        lhs = lhExp->eval(state);
+    } catch (ErrorException &e) {
+        delete lhExp;
+        error(e.getMessage());
+    }
     delete lhExp;
     if (!scanner.hasMoreTokens()) {
         error("SYNTAX ERROR");
@@ -212,7 +217,13 @@ void IF::execute(EvalState &state, Program &program) {
     } catch (...) {
         error("SYNTAX ERROR");
     }
-    int rhs = rhsExp->eval(state);
+    int rhs;
+    try {
+        rhs = rhsExp->eval(state);
+    } catch (ErrorException &e) {
+        delete rhsExp;
+        error(e.getMessage());
+    }
     delete rhsExp;
     if (!scanner.hasMoreTokens() || scanner.nextToken() != "THEN") {
         error("SYNTAX ERROR");
@@ -227,15 +238,20 @@ void IF::execute(EvalState &state, Program &program) {
     } catch (...) {
         error("SYNTAX ERROR");
     }
+    if (program.getSourceLine(targetLine).empty()) {
+        error("LINE NUMBER ERROR");
+    }
     if (scanner.hasMoreTokens()) {
         error("SYNTAX ERROR");
     }
     if (check(op[0], lhs, rhs)) {
         program.setCurrentLineNumber(targetLine);
-    } else {
+    }
+    else {
         program.goToNextLine();
     }
 }
+
 
 
 int stringToInt(std::string s) {
