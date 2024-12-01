@@ -47,7 +47,7 @@ void LET::execute(EvalState &state, Program &program) {
         error("SYNTAX ERROR");
     }
     std::string var = scanner.nextToken();
-    if (!isValidIdentifier(var)) {
+    if (!isVaribleValid(var)) {
         error("SYNTAX ERROR");
     }
     if (scanner.nextToken() != "=") {
@@ -202,9 +202,9 @@ void IF::execute(EvalState &state, Program &program) {
     Expression *rhsExp = nullptr;
     try {
         lhExp = parseExp(scanner);
-        int lhs = lhExp->eval(state); 
+        int lhs = lhExp->eval(state);
         delete lhExp;
-        lhExp = nullptr; 
+        lhExp = nullptr;
         if (!scanner.hasMoreTokens()) {
             error("SYNTAX ERROR");
         }
@@ -215,7 +215,7 @@ void IF::execute(EvalState &state, Program &program) {
         rhsExp = parseExp(scanner);
         int rhs = rhsExp->eval(state);
         delete rhsExp;
-        rhsExp = nullptr; 
+        rhsExp = nullptr;
         if (!scanner.hasMoreTokens() || scanner.nextToken() != "THEN") {
             error("SYNTAX ERROR");
         }
@@ -236,7 +236,7 @@ void IF::execute(EvalState &state, Program &program) {
             error("SYNTAX ERROR");
         }
         if (check(op[0], lhs, rhs)) {
-            program.setCurrentLineNumber(targetLine); 
+            program.setCurrentLineNumber(targetLine);
         } else {
             program.goToNextLine();
         }
