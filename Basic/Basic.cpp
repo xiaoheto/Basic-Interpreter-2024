@@ -58,6 +58,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
     scanner.scanNumbers();
     scanner.setInput(line);
     if (line.empty()) return;
+
     if (isdigit(line[0])) {
         int i = 0;
         int lineNumber = 0;
@@ -71,9 +72,15 @@ void processLine(std::string line, Program &program, EvalState &state) {
         else {
             while (i < line.length() && isspace(line[i])) ++i;
             std::string statementLine = line.substr(i);
-            Statement *stmt = parseStatement(statementLine);
-            program.addSourceLine(lineNumber, statementLine);
-            program.setParsedStatement(lineNumber, stmt);
+            Statement *stmt = nullptr;
+            try {
+                stmt = parseStatement(statementLine);
+                program.addSourceLine(lineNumber, statementLine);
+                program.setParsedStatement(lineNumber, stmt);
+            } catch (...) {
+                delete stmt;
+                throw;
+            }
         }
         return;
     }
@@ -83,7 +90,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
         while (currentLine != -1) {
             Statement *stmt = program.getParsedStatement(currentLine);
             if (stmt == nullptr) {
-                throw std::runtime_error("SYNTAX ERROR");
+                error("SYNTAX ERROR");
             }
             stmt->execute(state, program);
             currentLine = program.getCurrentLineNumber();
@@ -100,7 +107,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
         exit(0);
     }
     else if (command == "HELP") {
-        std::cout << "Available commands: RUN, LIST, CLEAR, QUIT, HELP.\n";
+        std::cout << "You are running the basic program.You can use commands to control it.\n";
     }
     else {
         Statement *stmt = parseStatement(line);
@@ -108,6 +115,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
         delete stmt;
     }
 }
+
 Statement* parseStatement(const std::string &line) {
     TokenScanner scanner(line);
     scanner.ignoreWhitespace();
@@ -120,6 +128,6 @@ Statement* parseStatement(const std::string &line) {
     if (command == "END") return new END(line);
     if (command == "GOTO") return new GOTO(line);
     if (command == "IF") return new IF(line);
-    throw ErrorException("SYNTAX ERROR: Unknown command");
+    throw ErrorException("Unknown command");
 }
 
