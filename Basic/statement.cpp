@@ -1,308 +1,146 @@
 /*
- * File: statement.cpp
- * -------------------
- * This file implements the constructor and destructor for
- * the Statement class itself.  Your implementation must do
- * the same for the subclasses you define for each of the
- * BASIC statements.
+ * File: statement.h
+ * -----------------
+ * This file defines the Statement abstract type.  In
+ * the finished version, this file will also specify subclasses
+ * for each of the statement types.  As you design your own
+ * version of this class, you should pay careful attention to
+ * the exp.h interface, which is an excellent model for
+ * the Statement class hierarchy.
  */
 
-#include "statement.hpp"
+#ifndef _statement_h
+#define _statement_h
+
+#include <string>
+#include <memory>
+#include <unordered_set>
+#include <sstream>
+#include <limits>
+#include "evalstate.hpp"
+#include "exp.hpp"
+#include "Utils/tokenScanner.hpp"
+#include "program.hpp"
+#include "parser.hpp"
+#include "Utils/error.hpp"
+#include "Utils/strlib.hpp"
+
+class Program;
+
+/*
+ * Class: Statement
+ * ----------------
+ * This class is used to represent a statement in a program.
+ * The model for this class is Expression in the exp.h interface.
+ * Like Expression, Statement is an abstract class with subclasses
+ * for each of the statement and command types required for the
+ * BASIC interpreter.
+ */
+
+class Statement {
+
+public:
+
+/*
+ * Constructor: Statement
+ * ----------------------
+ * The base class constructor is empty.  Each subclass must provide
+ * its own constructor.
+ */
+
+    Statement();
+
+/*
+ * Destructor: ~Statement
+ * Usage: delete stmt;
+ * -------------------
+ * The destructor deallocates the storage for this expression.
+ * It must be declared virtual to ensure that the correct subclass
+ * destructor is called when deleting a statement.
+ */
+
+    virtual ~Statement();
+
+/*
+ * Method: execute
+ * Usage: stmt->execute(state);
+ * ----------------------------
+ * This method executes a BASIC statement.  Each of the subclasses
+ * defines its own execute method that implements the necessary
+ * operations.  As was true for the expression evaluator, this
+ * method takes an EvalState object for looking up variables or
+ * controlling the operation of the interpreter.
+ */
+
+    virtual void execute(EvalState &state, Program &program) = 0;
+protected:
+    std::string str_line;//当前行正在解析的内容
+};
 
 
-/* Implementation of the Statement class */
-bool check(const char op, const int lhs, const int rhs);
-int stringToInt(std::string str);
-bool isKeyword(const std::string &var);//检查是否是关键字
-bool isValidIdentifier(const std::string &var);//检查变量名称是否合法
-bool isVaribleValid(const std::string &var);//验证变量名是否正确
-int assign(TokenScanner &scanner, EvalState &state);
+/*
+ * The remainder of this file must consists of subclass
+ * definitions for the individual statement forms.  Each of
+ * those subclasses must define a constructor that parses a
+ * statement from a scanner and a method called execute,
+ * which executes that statement.  If the private data for
+ * a subclass includes data allocated on the heap (such as
+ * an Expression object), the class implementation must also
+ * specify its own destructor method to free that memory.
+ */
+class REM: public Statement {
+public:
+    REM();//默认构造函数
+    explicit REM (const std::string &input);//字符串构造函数
+    ~REM() override;//析构函数
+    void execute (EvalState &state, Program &program) override;
+};
 
-Statement::Statement() = default;
+class LET: public Statement {
+public:
+    LET();
+    explicit  LET (const std::string &input);
+    ~LET() override;
+    void execute (EvalState &state, Program &program) override;
+};
 
-Statement::~Statement() = default;
+class PRINT:public Statement {
+public:
+    PRINT();
+    explicit  PRINT (const std::string &input);
+    ~PRINT() override;
+    void execute (EvalState &state, Program &program) override;
+};
 
+class GOTO:public Statement {
+public:
+    GOTO();
+    explicit  GOTO (const std::string &input);
+    ~GOTO() override;
+    void execute (EvalState &state, Program &program) override;
+};
 
- REM::REM() = default;
-REM::REM(const std::string& input) {
-    str_line = input;
-}
-REM::~REM() = default;
-void REM::execute(EvalState &state, Program &program) {
-    program.goToNextLine();//处于注释状态的时候，移动到下一行
-}
+class INPUT:public Statement {
+public:
+    INPUT();
+    explicit  INPUT (const std::string &input);
+    ~INPUT() override;
+    void execute (EvalState &state, Program &program) override;
+};
 
+class END:public Statement {
+public:
+    END();
+    explicit  END (const std::string &input);
+    ~END() override;
+    void execute (EvalState &state, Program &program) override;
+};
 
- LET::LET() = default;
-LET::LET(const std::string& input) {
-    str_line = input;
-}
-LET::~LET() = default;
-void LET::execute(EvalState &state, Program &program) {
-    TokenScanner scanner(str_line);
-    scanner.ignoreWhitespace();
-    scanner.scanNumbers();
-    scanner.setInput(str_line);
-
-    if (scanner.nextToken() != "LET") {
-        error("SYNTAX ERROR");
-    }
-    std::string var = scanner.nextToken();
-    if (!isVaribleValid(var)) {
-        error("SYNTAX ERROR");
-    }
-    if (scanner.nextToken() != "=") {
-        error("SYNTAX ERROR");
-    }
-    Expression *exp = nullptr;
-    try {
-        exp = parseExp(scanner);
-        int value = exp->eval(state);
-        state.setValue(var, value);
-    } catch (...) {
-        delete exp;
-        throw;
-    }
-    delete exp;
-    program.goToNextLine();
-}
-
-
-
- PRINT::PRINT() = default;
-PRINT::PRINT(const std::string& input) {
-    str_line = input;
-}
-PRINT::~PRINT() = default;
-void PRINT::execute(EvalState &state, Program &program) {
-    TokenScanner scanner(str_line);
-    scanner.ignoreWhitespace();
-    scanner.scanNumbers();
-    if (scanner.nextToken() != "PRINT") {
-        error("SYNTAX ERROR");
-    }
-    Expression *expr = nullptr;
-    try {
-        expr = parseExp(scanner);
-    } catch (const std::runtime_error &e) {
-        error("SYNTAX ERROR");
-    }
-    if (scanner.hasMoreTokens()) {
-        delete expr;
-        error("SYNTAX ERROR");
-    }
-    try {
-        int value = expr->eval(state);
-        std::cout << value << std::endl;
-    } catch (const std::runtime_error &e) {
-        delete expr;
-        error("RUNTIME ERROR");
-    }
-    delete expr;
-    program.goToNextLine();
-}
-
-
- GOTO::GOTO() =default;
-GOTO::GOTO(const std::string& input) {
-    str_line = input;
-}
-GOTO::~GOTO() = default;
-void GOTO::execute(EvalState &state, Program &program) {
-    TokenScanner scanner(str_line);
-    scanner.ignoreWhitespace();
-    scanner.scanNumbers();
-    if (scanner.nextToken() != "GOTO") {
-        error("SYNTAX ERROR");
-    }
-    int targetLine;
-    try {
-        std::string lineToken = scanner.nextToken();
-        targetLine = stringToInt(lineToken);
-    } catch (...) {
-        error("SYNTAX ERROR");
-    }
-    if (program.getSourceLine(targetLine).empty()) {
-        error("LINE NUMBER ERROR");
-    }
-    if (scanner.hasMoreTokens()) {
-        error("SYNTAX ERROR");
-    }
-    program.setCurrentLineNumber(targetLine);
-}
-
-
- INPUT::INPUT() =default;
-INPUT::INPUT(const std::string& input) {
-    str_line = input;
-}
-INPUT::~INPUT() = default;
-void INPUT::execute(EvalState &state, Program &program) {
-    TokenScanner scanner(str_line);
-    scanner.ignoreWhitespace();
-    scanner.scanNumbers();
-    scanner.setInput(str_line);
-    if (scanner.nextToken() != "INPUT") {
-        error("SYNTAX ERROR");
-    }
-    std::string var = scanner.nextToken();
-    if (!isVaribleValid(var)) {
-        error("SYNTAX ERROR");
-    }
-    if (scanner.hasMoreTokens()) {
-        error("SYNTAX ERROR");
-    }
-    std::cout << " ? ";
-    int value;
-    while (true) {
-        std::cin >> value;
-        if (std::cin.fail()) {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "INVALID NUMBER" << std::endl << " ? ";
-            continue;
-        }
-        char extra;
-        if (std::cin.get(extra) && extra != '\n') {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "INVALID NUMBER" << std::endl << " ? ";
-            continue;
-        }
-        break;
-    }
-    state.setValue(var, value);
-    program.goToNextLine();
-}
-
-
- END::END() = default;
-END::END(const std::string& input) {
-    str_line = input;
-}
-END::~END() = default;
-void END::execute(EvalState &state, Program &program) {
-    program.setCurrentLineNumber(-1);
-}
-
-
- IF::IF() = default;
-IF::IF(const std::string& input) {
-    str_line = input;
-}
-IF::~IF() = default;
-void IF::execute(EvalState &state, Program &program) {
-    std::string tempLine = str_line;
-    tempLine = tempLine.substr(3);
-    int op = 0;
-    while (tempLine[op] != '=' && tempLine[op] != '<' && tempLine[op] != '>') {
-        ++op;
-    }//找到比较运算符
-    std::string lh = tempLine.substr(0, op);
-    TokenScanner lhsExpre;
-    lhsExpre.ignoreWhitespace();
-    lhsExpre.scanNumbers();
-    lhsExpre.setInput(lh);
-    int lhs = assign(lhsExpre, state);
-    int end = op + 1;
-    while (tempLine[end] == ' ') ++end;
-    while (end < tempLine.length() && tempLine[end] != 'T' && tempLine[end] != '=' && tempLine[end] != '<' && tempLine[end] != '>') {
-        ++end;
-    }
-    if (end == tempLine.length() || tempLine[end] == '='|| tempLine[end] == '<' || tempLine[end] == '>') {
-        error("SYNTAX ERROR");
-    }
-    --end;
-    std::string rhsString = tempLine.substr(op + 1, end - op - 1);
-    TokenScanner rhsScanner;
-    rhsScanner.ignoreWhitespace();
-    rhsScanner.scanNumbers();
-    rhsScanner.setInput(rhsString);
-    int rhs = assign(rhsScanner, state);
-    if (check(tempLine[op], lhs, rhs)) {
-        tempLine = tempLine.substr(end + 1);
-        TokenScanner scanner;
-        scanner.ignoreWhitespace();
-        scanner.scanNumbers();
-        scanner.setInput(tempLine);
-        if (scanner.nextToken() != "THEN") {
-            error("SYNTAX ERROR");
-        }
-        else {
-            std::string token = scanner.nextToken();
-            int lineNumber = stringToInt(token);
-            if (scanner.hasMoreTokens()) error("SYNTAX ERROR");
-            if (program.getSourceLine(lineNumber).empty()) {
-                error("LINE NUMBER ERROR");
-            }
-            else{
-                program.setCurrentLineNumber(lineNumber);
-            }
-        }
-    }
-    else {
-        program.goToNextLine();
-    }
-}
-
-
-int stringToInt(std::string s) {
-    int sign = 1;
-    int num = 0;
-    if (s[0] == '-') {
-        sign = -1;
-        s = s.substr(1);
-    }
-    for(char i:s) {
-        if (i < '0' || i > '9') {
-            error("INVALID NUMBER");
-        }
-        else {
-            num = num * 10 + i - '0';
-        }
-    }
-    return num;
-}
-
-bool check(const char op, const int lhs, const int rhs) {
-    if (op == '=') {
-        return lhs == rhs;
-    }
-    if (op == '<') {
-        return lhs < rhs;
-    }
-    if (op == '>') {
-        return lhs > rhs;
-    }
-    error("SYNTAX ERROR");
-    return false;
-}
-
-bool isKeyword(const std::string &var) {
-    static const std::unordered_set<std::string> keywords = {
-        "REM", "LET", "PRINT", "INPUT", "END", "GOTO",
-        "IF", "THEN", "RUN", "LIST", "CLEAR", "QUIT", "HELP"
-    };
-    return keywords.count(var) > 0;
-}
-
-bool isValidIdentifier(const std::string &var) {
-    if (var.empty()) return false; // 变量名不能为空
-    for (char ch : var) {
-        if (!isalnum(ch) && ch != '_') { // 仅允许字母、数字、下划线
-            return false;
-        }
-    }
-    return true;
-}
-
-bool isVaribleValid(const std::string &var) {
-    if (!isValidIdentifier(var)) return false; // 检查字符合法性
-    if (isKeyword(var)) return false;          // 检查是否为关键字
-    return true;
-}
-
-int assign(TokenScanner &scanner, EvalState &state) {
-    Expression *exp = parseExp(scanner);
-    return exp->eval(state);
-}
+class IF:public Statement {
+public:
+    IF();
+    explicit  IF (const std::string &input);
+    ~IF() override;
+    void execute (EvalState &state, Program &program) override;
+};
+#endif
