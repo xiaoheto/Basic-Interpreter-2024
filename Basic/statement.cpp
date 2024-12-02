@@ -43,6 +43,7 @@ void LET::execute(EvalState &state, Program &program) {
     scanner.ignoreWhitespace();
     scanner.scanNumbers();
     scanner.setInput(str_line);
+
     if (scanner.nextToken() != "LET") {
         error("SYNTAX ERROR");
     }
@@ -53,14 +54,16 @@ void LET::execute(EvalState &state, Program &program) {
     if (scanner.nextToken() != "=") {
         error("SYNTAX ERROR");
     }
-    std::unique_ptr<Expression> exp;
+    Expression *exp = nullptr;
     try {
-        exp.reset(parseExp(scanner));
+        exp = parseExp(scanner);
         int value = exp->eval(state);
         state.setValue(var, value);
     } catch (...) {
-        throw; // 重新抛出异常
+        delete exp;
+        throw;
     }
+    delete exp;
     program.goToNextLine();
 }
 
@@ -71,7 +74,6 @@ PRINT::PRINT(const std::string& input) {
     str_line = input;
 }
 PRINT::~PRINT() = default;
-
 void PRINT::execute(EvalState &state, Program &program) {
     TokenScanner scanner(str_line);
     scanner.ignoreWhitespace();
@@ -79,12 +81,20 @@ void PRINT::execute(EvalState &state, Program &program) {
     if (scanner.nextToken() != "PRINT") {
         error("SYNTAX ERROR");
     }
-    std::unique_ptr<Expression> expr(parseExp(scanner));
-    if (scanner.hasMoreTokens()) {
-        error("SYNTAX ERROR");
+    Expression *expr = nullptr;
+    try {
+        expr = parseExp(scanner);
+        if (scanner.hasMoreTokens()) {
+            delete expr; // 确保释放内存
+            error("SYNTAX ERROR");
+        }
+        int value = expr->eval(state);
+        std::cout << value << std::endl;
+    } catch (...) {
+        delete expr;
+        throw;
     }
-    int value = expr->eval(state);
-    std::cout << value << std::endl;
+    delete expr;
     program.goToNextLine();
 }
 
@@ -141,22 +151,21 @@ void INPUT::execute(EvalState &state, Program &program) {
     std::cout << " ? ";
     int value;
     while (true) {
-        try {
-            std::string inputLine;
-            std::getline(std::cin, inputLine);
-            std::unique_ptr<TokenScanner> inputScanner = std::make_unique<TokenScanner>(inputLine);
-            inputScanner->ignoreWhitespace();
-            inputScanner->scanNumbers();
-            std::string token = inputScanner->nextToken();
-            value = stringToInt(token);
-            if (inputScanner->hasMoreTokens()) {
-                throw std::invalid_argument("EXTRA INPUT");
-            }
-            break;
-        } catch (...) {
+        std::cin >> value;
+        if (std::cin.fail()) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             std::cout << "INVALID NUMBER" << std::endl << " ? ";
             continue;
         }
+        char extra;
+        if (std::cin.get(extra) && extra != '\n') {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "INVALID NUMBER" << std::endl << " ? ";
+            continue;
+        }
+        break;
     }
     state.setValue(var, value);
     program.goToNextLine();
@@ -179,53 +188,55 @@ IF::IF(const std::string& input) {
 }
 IF::~IF() = default;
 void IF::execute(EvalState &state, Program &program) {
-    std::string tempLine = str_line.substr(3);
+    std::string tempLine = str_line;
+    tempLine = tempLine.substr(3);
     int op = 0;
-    // 找到比较运算符
     while (tempLine[op] != '=' && tempLine[op] != '<' && tempLine[op] != '>') {
         ++op;
-    }
+    }//找到比较运算符
     std::string lh = tempLine.substr(0, op);
-    std::unique_ptr<TokenScanner> lhsExpre = std::make_unique<TokenScanner>();
-    lhsExpre->ignoreWhitespace();
-    lhsExpre->scanNumbers();
-    lhsExpre->setInput(lh);
-    int lhs = assign(*lhsExpre, state);
+    TokenScanner lhsExpre;
+    lhsExpre.ignoreWhitespace();
+    lhsExpre.scanNumbers();
+    lhsExpre.setInput(lh);
+    int lhs = assign(lhsExpre, state);
     int end = op + 1;
     while (tempLine[end] == ' ') ++end;
     while (end < tempLine.length() && tempLine[end] != 'T' && tempLine[end] != '=' && tempLine[end] != '<' && tempLine[end] != '>') {
         ++end;
     }
-    if (end == tempLine.length() || tempLine[end] == '=' || tempLine[end] == '<' || tempLine[end] == '>') {
+    if (end == tempLine.length() || tempLine[end] == '='|| tempLine[end] == '<' || tempLine[end] == '>') {
         error("SYNTAX ERROR");
     }
     --end;
     std::string rhsString = tempLine.substr(op + 1, end - op - 1);
-    std::unique_ptr<TokenScanner> rhsScanner = std::make_unique<TokenScanner>();
-    rhsScanner->ignoreWhitespace();
-    rhsScanner->scanNumbers();
-    rhsScanner->setInput(rhsString);
-    int rhs = assign(*rhsScanner, state);
+    TokenScanner rhsScanner;
+    rhsScanner.ignoreWhitespace();
+    rhsScanner.scanNumbers();
+    rhsScanner.setInput(rhsString);
+    int rhs = assign(rhsScanner, state);
     if (check(tempLine[op], lhs, rhs)) {
         tempLine = tempLine.substr(end + 1);
-        std::unique_ptr<TokenScanner> scanner = std::make_unique<TokenScanner>();
-        scanner->ignoreWhitespace();
-        scanner->scanNumbers();
-        scanner->setInput(tempLine);
-
-        if (scanner->nextToken() != "THEN") {
+        TokenScanner scanner;
+        scanner.ignoreWhitespace();
+        scanner.scanNumbers();
+        scanner.setInput(tempLine);
+        if (scanner.nextToken() != "THEN") {
             error("SYNTAX ERROR");
-        } else {
-            std::string token = scanner->nextToken();
+        }
+        else {
+            std::string token = scanner.nextToken();
             int lineNumber = stringToInt(token);
-            if (scanner->hasMoreTokens()) error("SYNTAX ERROR");
+            if (scanner.hasMoreTokens()) error("SYNTAX ERROR");
             if (program.getSourceLine(lineNumber).empty()) {
                 error("LINE NUMBER ERROR");
-            } else {
+            }
+            else{
                 program.setCurrentLineNumber(lineNumber);
             }
         }
-    } else {
+    }
+    else {
         program.goToNextLine();
     }
 }
