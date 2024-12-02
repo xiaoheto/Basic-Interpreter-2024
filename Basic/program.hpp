@@ -142,7 +142,7 @@ public:
 
     int getCurrentLineNumber();
 
-    int setCurrentLineNumber(int lineNumber);//设置当前行
+    void setCurrentLineNumber(int lineNumber);//设置当前行
 
     void printAllLines()const;
 
