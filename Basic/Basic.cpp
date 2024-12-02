@@ -87,18 +87,14 @@ void processLine(std::string line, Program &program, EvalState &state) {
     std::string command = scanner.nextToken();
     if (command == "RUN") {
         int currentLine = program.getFirstLineNumber();
+        Statement *currentStmt;
         while (currentLine != -1) {
-            std::shared_ptr<Statement> stmt = program.getParsedStatement(currentLine);
-            if (!stmt) {
+            Statement *stmt = program.getParsedStatement(currentLine);
+            if (stmt == nullptr) {
                 error("SYNTAX ERROR");
             }
-            try {
-                stmt->execute(state, program); // 执行当前行的语句
-            } catch (const ErrorException &ex) {
-                std::cout << ex.getMessage() << std::endl;
-                return;
-            }
-            currentLine = program.getCurrentLineNumber(); // 获取下一行
+            stmt->execute(state, program);
+            currentLine = program.getCurrentLineNumber();
         }
     } else if (command == "LIST") {
         program.printAllLines();
