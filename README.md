@@ -288,7 +288,7 @@ g++ -o score score.cpp
 - 基础任务 80%
   - 按 OJ 得分给分
 - Code Review 20%
-- 增强程序鲁棒性(bonus) 1%
+- 增强程序鲁棒性 1% (bonus)
 - 测试点成功攻击他人程序 2% (bonus)
 - 四则运算计算器 3% (bonus)
 
