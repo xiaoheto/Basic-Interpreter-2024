@@ -87,7 +87,6 @@ void processLine(std::string line, Program &program, EvalState &state) {
     std::string command = scanner.nextToken();
     if (command == "RUN") {
         int currentLine = program.getFirstLineNumber();
-        Statement *currentStmt;
         while (currentLine != -1) {
             Statement *stmt = program.getParsedStatement(currentLine);
             if (stmt == nullptr) {
@@ -96,7 +95,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
             stmt->execute(state, program);
             currentLine = program.getCurrentLineNumber();
         }
-    } else if (command == "LIST") {
+    }else if (command == "LIST") {
         program.printAllLines();
     } else if (command == "CLEAR") {
         program.clear();
@@ -131,4 +130,3 @@ Statement* parseStatement(const std::string &line) {
     if (command == "IF") return new IF(line);
     throw ErrorException("Unknown command");
 }
-
