@@ -11,21 +11,35 @@
 #include "program.hpp"
 
 
-Program::Program() = default;
+Program::Program() : currentLineNumber(-1) { }
 
 Program::~Program() {
     clear();
 };
 
 void Program::clear() {
+    for(auto &entry:parsedStatements) {
+        delete entry.second;
+    }
     parsedStatements.clear();
+    sourceLines.clear();
+    currentLineNumber = -1;
 }
 
-void Program::addSourceLine(int lineNumber, const std::string& line) {
-    parsedStatements[lineNumber] = nullptr;
+void Program::addSourceLine(int lineNumber, const std::string &line) {
+    if (sourceLines.count(lineNumber)) {
+        delete parsedStatements[lineNumber];
+        parsedStatements.erase(lineNumber);
+        sourceLines[lineNumber] = line;
+    }
+    else {
+        sourceLines[lineNumber] = line;
+    }
 }
 
 void Program::removeSourceLine(int lineNumber) {
+    sourceLines.erase(lineNumber);
+    delete parsedStatements[lineNumber];
     parsedStatements.erase(lineNumber);
 }
 
@@ -38,18 +52,26 @@ std::string Program::getSourceLine(int lineNumber) {
     }
 }
 
-void Program::setParsedStatement(int lineNumber, Statement* stmt) {
-    parsedStatements[lineNumber] = std::shared_ptr<Statement>(stmt);
+void Program::setParsedStatement(int lineNumber, Statement *stmt) {
+    if (sourceLines.find(lineNumber) == sourceLines.end()) {
+        throw std::runtime_error("Error: Line number does not exist.");
+    }
+    else {
+        delete parsedStatements[lineNumber];
+        parsedStatements.erase(lineNumber);
+        parsedStatements[lineNumber] = stmt;
+    }
 }
 
 //void Program::removeSourceLine(int lineNumber) {
 
-std::shared_ptr<Statement> Program::getParsedStatement(int lineNumber) {
-    auto it = parsedStatements.find(lineNumber);
-    if (it != parsedStatements.end()) {
-        return it->second;
+Statement *Program::getParsedStatement(int lineNumber) {
+    if (parsedStatements.find(lineNumber) == parsedStatements.end()) {
+        return nullptr;
     }
-    return nullptr;
+    else {
+        return parsedStatements[lineNumber];
+    }
 }
 
 int Program::getFirstLineNumber() {
@@ -62,11 +84,11 @@ int Program::getFirstLineNumber() {
 }
 
 int Program::getNextLineNumber(int lineNumber) {
+    if (sourceLines.empty()) return -1;
     auto it = sourceLines.upper_bound(lineNumber);
     if (it != sourceLines.end()) {
-        return it -> first;
-    }
-    else {
+        return it->first;
+    } else {
         return -1;
     }
 }
@@ -87,5 +109,6 @@ void Program::printAllLines() const {
 }
 
 void Program::goToNextLine() {
+    if (currentLineNumber == -1) return;
     currentLineNumber = getNextLineNumber(currentLineNumber);
 }
