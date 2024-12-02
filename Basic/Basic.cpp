@@ -93,7 +93,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
                 error("SYNTAX ERROR");
             }
             stmt->execute(state, program);
-            currentLine = program.getCurrentLineNumber();
+            currentLine = program.getNextLineNumber(currentLine);
         }
     }else if (command == "LIST") {
         program.printAllLines();
