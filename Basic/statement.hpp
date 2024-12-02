@@ -11,7 +11,7 @@
 
 #ifndef _statement_h
 #define _statement_h
-
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <sstream>
