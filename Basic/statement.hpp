@@ -13,7 +13,6 @@
 #define _statement_h
 
 #include <string>
-#include <memory>
 #include <unordered_set>
 #include <sstream>
 #include <limits>
