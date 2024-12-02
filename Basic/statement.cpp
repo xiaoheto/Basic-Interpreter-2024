@@ -110,6 +110,7 @@ void GOTO::execute(EvalState &state, Program &program) {
     scanner.scanNumbers();
     if (scanner.nextToken() != "GOTO") {
         error("SYNTAX ERROR");
+        program.goToNextLine();
     }
     int targetLine;
     try {
@@ -120,6 +121,8 @@ void GOTO::execute(EvalState &state, Program &program) {
     }
     if (program.getSourceLine(targetLine).empty()) {
         error("LINE NUMBER ERROR");
+        program.goToNextLine();
+        return;
     }
     if (scanner.hasMoreTokens()) {
         error("SYNTAX ERROR");
@@ -193,19 +196,21 @@ void IF::execute(EvalState &state, Program &program) {
     int op = 0;
     while (tempLine[op] != '=' && tempLine[op] != '<' && tempLine[op] != '>') {
         ++op;
-    }//找到比较运算符
+    }
     std::string lh = tempLine.substr(0, op);
     TokenScanner lhsExpre;
     lhsExpre.ignoreWhitespace();
     lhsExpre.scanNumbers();
     lhsExpre.setInput(lh);
-    int lhs = assign(lhsExpre, state);
+    Expression *lhsExp = parseExp(lhsExpre);
+    int lhs = lhsExp->eval(state);
+    delete lhsExp;
     int end = op + 1;
     while (tempLine[end] == ' ') ++end;
     while (end < tempLine.length() && tempLine[end] != 'T' && tempLine[end] != '=' && tempLine[end] != '<' && tempLine[end] != '>') {
         ++end;
     }
-    if (end == tempLine.length() || tempLine[end] == '='|| tempLine[end] == '<' || tempLine[end] == '>') {
+    if (end == tempLine.length() || tempLine[end] == '=' || tempLine[end] == '<' || tempLine[end] == '>') {
         error("SYNTAX ERROR");
     }
     --end;
@@ -214,7 +219,9 @@ void IF::execute(EvalState &state, Program &program) {
     rhsScanner.ignoreWhitespace();
     rhsScanner.scanNumbers();
     rhsScanner.setInput(rhsString);
-    int rhs = assign(rhsScanner, state);
+    Expression *rhsExp = parseExp(rhsScanner);
+    int rhs = rhsExp->eval(state);
+    delete rhsExp;
     if (check(tempLine[op], lhs, rhs)) {
         tempLine = tempLine.substr(end + 1);
         TokenScanner scanner;
@@ -223,23 +230,24 @@ void IF::execute(EvalState &state, Program &program) {
         scanner.setInput(tempLine);
         if (scanner.nextToken() != "THEN") {
             error("SYNTAX ERROR");
-        }
-        else {
+        } else {
             std::string token = scanner.nextToken();
             int lineNumber = stringToInt(token);
-            if (scanner.hasMoreTokens()) error("SYNTAX ERROR");
+            if (scanner.hasMoreTokens()) {
+                error("SYNTAX ERROR");
+            }
             if (program.getSourceLine(lineNumber).empty()) {
                 error("LINE NUMBER ERROR");
-            }
-            else{
-                program.setCurrentLineNumber(lineNumber);
+            } else {
+                program.setCurrentLineNumber(lineNumber); // 跳转到目标行
             }
         }
-    }
-    else {
+    } else {
         program.goToNextLine();
     }
 }
+
+
 
 
 int stringToInt(std::string s) {
@@ -299,6 +307,6 @@ bool isVaribleValid(const std::string &var) {
 }
 
 int assign(TokenScanner &scanner, EvalState &state) {
-    Expression *exp = parseExp(scanner);
+    std::unique_ptr<Expression> exp(parseExp(scanner));  // 使用智能指针管理内存
     return exp->eval(state);
 }
