@@ -98,7 +98,7 @@ int Program::getCurrentLineNumber() {
 }
 
 
-int Program::setCurrentLineNumber(int lineNumber) {
+void Program::setCurrentLineNumber(int lineNumber) {
     currentLineNumber = lineNumber;
 }
 
@@ -111,3 +111,6 @@ void Program::printAllLines() const {
 void Program::goToNextLine() {
     currentLineNumber = getNextLineNumber(currentLineNumber);
 }
+
+
+
