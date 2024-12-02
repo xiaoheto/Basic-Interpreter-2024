@@ -18,28 +18,14 @@ Program::~Program() {
 };
 
 void Program::clear() {
-    for(auto &entry:parsedStatements) {
-        delete entry.second;
-    }
     parsedStatements.clear();
-    sourceLines.clear();
-    currentLineNumber = -1;
 }
 
-void Program::addSourceLine(int lineNumber, const std::string &line) {
-    if (sourceLines.count(lineNumber)) {
-        delete parsedStatements[lineNumber];
-        parsedStatements.erase(lineNumber);
-        sourceLines[lineNumber] = line;
-    }
-    else {
-        sourceLines[lineNumber] = line;
-    }
+void Program::addSourceLine(int lineNumber, const std::string& line) {
+    parsedStatements[lineNumber] = nullptr;
 }
 
 void Program::removeSourceLine(int lineNumber) {
-    sourceLines.erase(lineNumber);
-    delete parsedStatements[lineNumber];
     parsedStatements.erase(lineNumber);
 }
 
@@ -52,26 +38,18 @@ std::string Program::getSourceLine(int lineNumber) {
     }
 }
 
-void Program::setParsedStatement(int lineNumber, Statement *stmt) {
-    if (sourceLines.find(lineNumber) == sourceLines.end()) {
-        throw std::runtime_error("Error: Line number does not exist.");
-    }
-    else {
-        delete parsedStatements[lineNumber];
-        parsedStatements.erase(lineNumber);
-        parsedStatements[lineNumber] = stmt;
-    }
+void Program::setParsedStatement(int lineNumber, Statement* stmt) {
+    parsedStatements[lineNumber] = std::shared_ptr<Statement>(stmt);
 }
 
 //void Program::removeSourceLine(int lineNumber) {
 
-Statement *Program::getParsedStatement(int lineNumber) {
-    if (parsedStatements.find(lineNumber) == parsedStatements.end()) {
-        return nullptr;
+std::shared_ptr<Statement> Program::getParsedStatement(int lineNumber) {
+    auto it = parsedStatements.find(lineNumber);
+    if (it != parsedStatements.end()) {
+        return it->second;
     }
-    else {
-        return parsedStatements[lineNumber];
-    }
+    return nullptr;
 }
 
 int Program::getFirstLineNumber() {
@@ -111,6 +89,3 @@ void Program::printAllLines() const {
 void Program::goToNextLine() {
     currentLineNumber = getNextLineNumber(currentLineNumber);
 }
-
-
-
