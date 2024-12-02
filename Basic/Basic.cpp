@@ -7,6 +7,7 @@
 #include <cctype>
 #include <iostream>
 #include <string>
+#include <memory>
 #include "exp.hpp"
 #include "parser.hpp"
 #include "program.hpp"
@@ -20,6 +21,22 @@
 void processLine(std::string line, Program &program, EvalState &state);
 Statement* parseStatement(const std::string &line);
 /* Main program */
+
+
+
+/*
+ * Function: processLine
+ * Usage: processLine(line, program, state);
+ * -----------------------------------------
+ * Processes a single line entered by the user.  In this version of
+ * implementation, the program reads a line, parses it as an expression,
+ * and then prints the result.  In your implementation, you will
+ * need to replace this method with one that can respond correctly
+ * when the user enters a program line (which begins with a number)
+ * or one of the BASIC commands, such as LIST or RUN.
+ */
+
+
 
 int main() {
     EvalState state;
@@ -38,27 +55,12 @@ int main() {
     }
     return 0;
 }
-
-/*
- * Function: processLine
- * Usage: processLine(line, program, state);
- * -----------------------------------------
- * Processes a single line entered by the user.  In this version of
- * implementation, the program reads a line, parses it as an expression,
- * and then prints the result.  In your implementation, you will
- * need to replace this method with one that can respond correctly
- * when the user enters a program line (which begins with a number)
- * or one of the BASIC commands, such as LIST or RUN.
- */
-
-
 void processLine(std::string line, Program &program, EvalState &state) {
     TokenScanner scanner;
     scanner.ignoreWhitespace();
     scanner.scanNumbers();
     scanner.setInput(line);
     if (line.empty()) return;
-
     if (isdigit(line[0])) {
         int i = 0;
         int lineNumber = 0;
@@ -68,18 +70,16 @@ void processLine(std::string line, Program &program, EvalState &state) {
         }
         if (i == line.length()) {
             program.removeSourceLine(lineNumber);
-        }
-        else {
+        } else {
             while (i < line.length() && isspace(line[i])) ++i;
             std::string statementLine = line.substr(i);
-            Statement *stmt = nullptr;
+            std::unique_ptr<Statement> stmt;
             try {
-                stmt = parseStatement(statementLine);
+                stmt.reset(parseStatement(statementLine));
                 program.addSourceLine(lineNumber, statementLine);
-                program.setParsedStatement(lineNumber, stmt);
-            } catch (...) {
-                delete stmt;
-                throw;
+                program.setParsedStatement(lineNumber, stmt.release());
+            } catch (const ErrorException &ex) {
+                std::cout << ex.getMessage() << std::endl;
             }
         }
         return;
@@ -92,29 +92,34 @@ void processLine(std::string line, Program &program, EvalState &state) {
             if (stmt == nullptr) {
                 error("SYNTAX ERROR");
             }
-            stmt->execute(state, program);
+            try {
+                stmt->execute(state, program);
+            } catch (const ErrorException &ex) {
+                std::cout << ex.getMessage() << std::endl;
+                return;
+            }
             currentLine = program.getCurrentLineNumber();
         }
-    }
-    else if (command == "LIST") {
+    } else if (command == "LIST") {
         program.printAllLines();
-    }
-    else if (command == "CLEAR") {
+    } else if (command == "CLEAR") {
         program.clear();
         state = EvalState();
-    }
-    else if (command == "QUIT") {
+    } else if (command == "QUIT") {
         exit(0);
-    }
-    else if (command == "HELP") {
-        std::cout << "You are running the basic program.You can use commands to control it.\n";
-    }
-    else {
-        Statement *stmt = parseStatement(line);
-        stmt->execute(state, program);
-        delete stmt;
+    } else if (command == "HELP") {
+        std::cout << "You are running the BASIC program.\n";
+    } else {
+        std::unique_ptr<Statement> stmt;
+        try {
+            stmt.reset(parseStatement(line));
+            stmt->execute(state, program);
+        } catch (const ErrorException &ex) {
+            std::cout << ex.getMessage() << std::endl;
+        }
     }
 }
+
 
 Statement* parseStatement(const std::string &line) {
     TokenScanner scanner(line);
