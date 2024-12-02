@@ -15,7 +15,7 @@ Program::Program() : currentLineNumber(-1) { }
 
 Program::~Program() {
     clear();
-};
+}
 
 void Program::clear() {
     for(auto &entry:parsedStatements) {
@@ -66,7 +66,7 @@ void Program::setParsedStatement(int lineNumber, Statement *stmt) {
 //void Program::removeSourceLine(int lineNumber) {
 
 Statement *Program::getParsedStatement(int lineNumber) {
-    if (parsedStatements.find(lineNumber) == parsedStatements.end()) {
+    if (sourceLines.find(lineNumber) == sourceLines.end()) {
         return nullptr;
     }
     else {
