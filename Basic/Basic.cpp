@@ -87,13 +87,18 @@ void processLine(std::string line, Program &program, EvalState &state) {
     std::string command = scanner.nextToken();
     if (command == "RUN") {
         int currentLine = program.getFirstLineNumber();
+        program.setCurrentLineNumber(currentLine);
         while (currentLine != -1) {
             Statement *stmt = program.getParsedStatement(currentLine);
             if (stmt == nullptr) {
                 error("SYNTAX ERROR");
             }
             stmt->execute(state, program);
-            currentLine = program.getNextLineNumber(currentLine);
+            currentLine = program.getCurrentLineNumber();
+            if (currentLine != -1 && currentLine == program.getNextLineNumber(currentLine)) {
+                currentLine = program.getNextLineNumber(currentLine);
+                program.setCurrentLineNumber(currentLine);
+            }
         }
     }else if (command == "LIST") {
         program.printAllLines();
@@ -130,3 +135,4 @@ Statement* parseStatement(const std::string &line) {
     if (command == "IF") return new IF(line);
     throw ErrorException("Unknown command");
 }
+
