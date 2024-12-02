@@ -1,5 +1,5 @@
 /*
- * File: parser.h
+* File: parser.h
  * --------------
  * This file acts as the interface to the parser module.
  */
