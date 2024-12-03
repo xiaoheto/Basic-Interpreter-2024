@@ -16,7 +16,6 @@ int stringToInt(std::string str);
 bool isKeyword(const std::string &var);//检查是否是关键字
 bool isValidIdentifier(const std::string &var);//检查变量名称是否合法
 bool isVaribleValid(const std::string &var);//验证变量名是否正确
-int assign(TokenScanner &scanner, EvalState &state);
 
 Statement::Statement() = default;
 
@@ -291,7 +290,7 @@ bool isKeyword(const std::string &var) {
 }
 
 bool isValidIdentifier(const std::string &var) {
-    if (var.empty()) return false; // 变量名不能为空
+    if (var.empty()) return false;
     for (char ch : var) {
         if (!isalnum(ch) && ch != '_') { // 仅允许字母、数字、下划线
             return false;
@@ -304,9 +303,4 @@ bool isVaribleValid(const std::string &var) {
     if (!isValidIdentifier(var)) return false; // 检查字符合法性
     if (isKeyword(var)) return false;          // 检查是否为关键字
     return true;
-}
-
-int assign(TokenScanner &scanner, EvalState &state) {
-    std::unique_ptr<Expression> exp(parseExp(scanner));  // 使用智能指针管理内存
-    return exp->eval(state);
 }
