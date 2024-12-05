@@ -127,7 +127,6 @@ void processLine(std::string line, Program &program, EvalState &state) {
     }
 }
 
-
 Statement* parseStatement(const std::string &line) {
     TokenScanner scanner(line);
     scanner.ignoreWhitespace();
