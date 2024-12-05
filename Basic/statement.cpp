@@ -58,8 +58,9 @@ void LET::execute(EvalState &state, Program &program) {
         int value = exp->eval(state);
         state.setValue(var, value);
     } catch (...) {
-        error("SYNTAX ERROR");
-    }//异常情况下的处理，delete指针exp
+        delete exp;
+        throw;
+    }
     delete exp;
     program.goToNextLine();
 }
@@ -88,7 +89,8 @@ void PRINT::execute(EvalState &state, Program &program) {
         int value = expr->eval(state);
         std::cout << value << std::endl;
     } catch (...) {
-        error("SYNTAX ERROR");
+        delete expr;
+        throw;
     }
     delete expr;
     program.goToNextLine();
