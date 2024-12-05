@@ -19,7 +19,7 @@
 /* Function prototypes */
 
 void processLine(std::string line, Program &program, EvalState &state);
-Statement* parseStatement(const std::string &line);
+Statement* parseStatement(const std::string &line);//用于确定当前处理的行对应什么状态
 /* Main program */
 
 
@@ -117,7 +117,7 @@ void processLine(std::string line, Program &program, EvalState &state) {
         std::cout << "You are running the BASIC program.\n";
     }
     else {
-        std::unique_ptr<Statement> stmt;
+        std::unique_ptr<Statement> stmt;//智能指针，不需要delete
         try {
             stmt.reset(parseStatement(line));
             stmt->execute(state, program);
