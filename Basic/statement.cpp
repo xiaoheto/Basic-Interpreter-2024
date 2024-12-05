@@ -121,7 +121,7 @@ void GOTO::execute(EvalState &state, Program &program) {
         error("LINE NUMBER ERROR");
         program.goToNextLine();
         return;
-    }
+    }//不存在目标行
     if (scanner.hasMoreTokens()) {
         error("SYNTAX ERROR");
     }
@@ -194,13 +194,13 @@ void IF::execute(EvalState &state, Program &program) {
     int op = 0;
     while (tempLine[op] != '=' && tempLine[op] != '<' && tempLine[op] != '>') {
         ++op;
-    }
-    std::string lh = tempLine.substr(0, op);
+    }//找到比较运算符
+    std::string lh = tempLine.substr(0, op);//表达式的左边部分
     TokenScanner lhsExpre;
     lhsExpre.ignoreWhitespace();
     lhsExpre.scanNumbers();
     lhsExpre.setInput(lh);
-    Expression *lhsExp = parseExp(lhsExpre);
+    Expression *lhsExp = parseExp(lhsExpre);//解析左值
     int lhs = lhsExp->eval(state);
     delete lhsExp;
     int end = op + 1;
@@ -210,7 +210,7 @@ void IF::execute(EvalState &state, Program &program) {
     }
     if (end == tempLine.length() || tempLine[end] == '=' || tempLine[end] == '<' || tempLine[end] == '>') {
         error("SYNTAX ERROR");
-    }
+    }//比较运算符之后没有内容
     --end;
     std::string rhsString = tempLine.substr(op + 1, end - op - 1);
     TokenScanner rhsScanner;
@@ -267,14 +267,14 @@ int stringToInt(std::string s) {
 }
 
 bool check(const char op, const int lhs, const int rhs) {
-    if (op == '=') {
-        return lhs == rhs;
-    }
     if (op == '<') {
         return lhs < rhs;
     }
     if (op == '>') {
         return lhs > rhs;
+    }
+    if (op == '=') {
+        return lhs == rhs;
     }
     error("SYNTAX ERROR");
     return false;
