@@ -55,6 +55,7 @@ int main() {
     }
     return 0;
 }
+
 void processLine(std::string line, Program &program, EvalState &state) {
     TokenScanner scanner;
     scanner.ignoreWhitespace();
@@ -70,29 +71,30 @@ void processLine(std::string line, Program &program, EvalState &state) {
         }
         if (i == line.length()) {
             program.removeSourceLine(lineNumber);
-        } else {
+        }//如果行号之后没有内容
+        else {
             while (i < line.length() && isspace(line[i])) ++i;
-            std::string statementLine = line.substr(i);
+            std::string statementLine = line.substr(i);//提取语句部分
             std::unique_ptr<Statement> stmt;
             try {
                 stmt.reset(parseStatement(statementLine));
                 program.addSourceLine(lineNumber, statementLine);
                 program.setParsedStatement(lineNumber, stmt.release());
             } catch (const ErrorException &ex) {
-                std::cout << ex.getMessage() << std::endl;
+                std::cout << ex.getMessage() << '\n';//输出错误信息
             }
         }
         return;
     }
-    std::string command = scanner.nextToken();
+    std::string command = scanner.nextToken();//确定指令内容
     if (command == "RUN") {
-        int currentLine = program.getFirstLineNumber();
+        int currentLine = program.getFirstLineNumber();//找到第一行
         program.setCurrentLineNumber(currentLine);
         while (currentLine != -1) {
             Statement *stmt = program.getParsedStatement(currentLine);
             if (stmt == nullptr) {
                 error("SYNTAX ERROR");
-            }
+            }//没有内容
             stmt->execute(state, program);
             currentLine = program.getCurrentLineNumber();
             if (currentLine != -1 && currentLine == program.getNextLineNumber(currentLine)) {
@@ -100,16 +102,21 @@ void processLine(std::string line, Program &program, EvalState &state) {
                 program.setCurrentLineNumber(currentLine);
             }
         }
-    }else if (command == "LIST") {
+    }
+    else if (command == "LIST") {
         program.printAllLines();
-    } else if (command == "CLEAR") {
+    }
+    else if (command == "CLEAR") {
         program.clear();
         state = EvalState();
-    } else if (command == "QUIT") {
+    }
+    else if (command == "QUIT") {
         exit(0);
-    } else if (command == "HELP") {
+    }
+    else if (command == "HELP") {
         std::cout << "You are running the BASIC program.\n";
-    } else {
+    }
+    else {
         std::unique_ptr<Statement> stmt;
         try {
             stmt.reset(parseStatement(line));
@@ -135,4 +142,3 @@ Statement* parseStatement(const std::string &line) {
     if (command == "IF") return new IF(line);
     throw ErrorException("Unknown command");
 }
-
