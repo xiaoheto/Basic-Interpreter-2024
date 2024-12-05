@@ -41,7 +41,6 @@ void LET::execute(EvalState &state, Program &program) {
     TokenScanner scanner(str_line);
     scanner.ignoreWhitespace();
     scanner.scanNumbers();
-    scanner.setInput(str_line);
 
     if (scanner.nextToken() != "LET") {
         error("SYNTAX ERROR");
@@ -49,19 +48,18 @@ void LET::execute(EvalState &state, Program &program) {
     std::string var = scanner.nextToken();
     if (!isVaribleValid(var)) {
         error("SYNTAX ERROR");
-    }
+    }//验证变量名的合法性
     if (scanner.nextToken() != "=") {
         error("SYNTAX ERROR");
     }
     Expression *exp = nullptr;
     try {
-        exp = parseExp(scanner);
+        exp = parseExp(scanner);//解析等号右边的表达式
         int value = exp->eval(state);
         state.setValue(var, value);
     } catch (...) {
-        delete exp;
-        throw;
-    }
+        error("SYNTAX ERROR");
+    }//异常情况下的处理，delete指针exp
     delete exp;
     program.goToNextLine();
 }
@@ -90,8 +88,7 @@ void PRINT::execute(EvalState &state, Program &program) {
         int value = expr->eval(state);
         std::cout << value << std::endl;
     } catch (...) {
-        delete expr;
-        throw;
+        error("SYNTAX ERROR");
     }
     delete expr;
     program.goToNextLine();
@@ -157,14 +154,14 @@ void INPUT::execute(EvalState &state, Program &program) {
         if (std::cin.fail()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "INVALID NUMBER" << std::endl << " ? ";
+            std::cout << "INVALID NUMBER" << '\n' << " ? ";
             continue;
         }
         char extra;
         if (std::cin.get(extra) && extra != '\n') {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "INVALID NUMBER" << std::endl << " ? ";
+            std::cout << "INVALID NUMBER" << '\n' << " ? ";
             continue;
         }
         break;
